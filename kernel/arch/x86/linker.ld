@@ -1,46 +1,45 @@
-/* =============================================================================
-   BlizzardOS — kernel/arch/x86/linker.ld
-   Linker script for the BlizzardOS kernel ELF binary
-   Loads kernel at 1 MiB (0x100000) — standard for Multiboot kernels
-   ============================================================================= */
+/* kernel/arch/x86/linker.ld
+ * places the kernel at 1 MiB physical — standard for multiboot
+ * anything below 1 MiB is BIOS/real-mode territory, we stay out of it
+ */
 
 ENTRY(_start)
 
 SECTIONS {
-    /* Load at 1 MiB physical — below is BIOS/real-mode territory */
-    . = 0x00100000;
+    . = 0x00100000;     /* load address: 1 MiB */
 
-    /* Multiboot header must be in first 8 KiB of the ELF */
+    /* multiboot header has to be within the first 8 KiB of the binary */
     .multiboot ALIGN(4) : {
         *(.multiboot)
     }
 
-    /* Kernel code */
+    /* executable code */
     .text ALIGN(4096) : {
         *(.text)
         *(.text.*)
     }
 
-    /* Read-only data (string literals, const globals) */
+    /* read-only data — string literals, const globals */
     .rodata ALIGN(4096) : {
         *(.rodata)
         *(.rodata.*)
     }
 
-    /* Initialised read-write data */
+    /* initialised read-write data */
     .data ALIGN(4096) : {
         *(.data)
         *(.data.*)
     }
 
-    /* Zero-initialised data — takes no space in the ELF file */
+    /* zero-initialised data — exists in memory but not in the ELF file */
     .bss ALIGN(4096) : {
         *(COMMON)
         *(.bss)
         *(.bss.*)
     }
 
-    /* Symbol marking end of kernel image — used by memory manager */
+    /* kernel_end marks where the image stops — pmm uses this to know
+     * where free memory begins */
     . = ALIGN(4096);
     PROVIDE(kernel_end = .);
 }
